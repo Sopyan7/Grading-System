@@ -128,10 +128,10 @@ class Module:
         for student in students:
             row = [student.firstname, student.lastname, 0,
                    student.average]
-            for x in range(len(self.asssessments)):
-                student[2] += student.scores[x] * self.weights[x]
-            student[2] = int(student[2])
-            row.extend(performance(student[2]))
+            for x in range(self.asssessments):
+                row[2] += student.scores[x] * self.weights[x]
+            row[2] = int(row[2])
+            row.extend(performance(row[2]))
             if full_student_info:
                 row.append(student.id)
             rows.append(row)
@@ -240,7 +240,7 @@ class InteractiveControl:
         while True:
             yesno = input('Full info? [Y/n] ').lower()
             if yesno in 'yn':
-                yesno = yesno == 'y'  # convert to boolean
+                yesno = yesno == 'y'  #Convert to boolean
                 break
         while True:
             sortmode = input('Sorted by? [firstname/lastname/score] ')
