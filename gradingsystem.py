@@ -2,17 +2,6 @@ import json
 from os import system, name
 from time import sleep
 
-def sort_algorithm(list, key=lambda obj: obj):
-    changed = True
-    while changed:
-        last = None
-        changed = False
-        for lno, l in enumerate(list):
-            if last is not None and key(l) < last:
-                list[lno - 1], list[lno] = list[lno], list[lno - 1]
-                changed = True
-
-            last = key(l)
 # Minimum
 def min(list):
     m = float('inf')
@@ -134,77 +123,6 @@ class Module:
         self.assessments = assessments
         self.weights = weights
         self.students = students
-    
-    def calculate_average_score(self, assessment=None):
-        if self.students:
-            scores = []
-            if assessment is None:
-                for student in self.students:
-                    scores.append(student.average)
-            else:
-                for student in self.students:
-                    scores.append(student.scores[assessment])
-            return int(sum(scores) / len(scores))
-        return 0
-
-    def get_min_max_avg(self, assessment=None):
-        if self.students:
-            scores = []
-            if assessment is None:
-                for student in self.students:
-                    scores.extend(student.scores)
-            else:
-                for student in self.students:
-                    scores.append(student.scores[assessment])
-
-            return min(scores), max(scores), sum(scores) / len(scores)
-
-        return 0, 0
-
-    def display_student_table(self, sort='score', full_student_info=False):
-        if sort == 'firstname':
-            def key(student):
-                return student.firstname
-        elif sort == 'lastname':
-            def key(student):
-                return student.lastname
-        elif sort == 'score':
-            def key(student):
-                return -sum(student.scores)
-        else:
-            raise ValueError("sort must be 'firstname', 'lastname' or 'score'")
-
-        # Sort
-        students = self.students.copy()
-        sort_algorithm(students, key=key)
-
-        headers = ['Firstname', 'Lastname', 'Total score', 'Average score', 'Grade', 'Degree']
-        if full_student_info:
-            headers.append('Student ID')
-
-        rows = []
-        for student in students:
-            row = [student.firstname, student.lastname, 0,student.average]
-            for x in range(self.assessments):
-                row[2] += student.scores[x] * self.weights[x]
-            row[2] = int(row[2])
-            row.extend(performance(row[2]))
-            if full_student_info:
-                row.append(student.id)
-            rows.append(row)
-
-        table_print(headers, rows)
-		
-		#Display Assessments
-    def display_assessments(self):
-        headers = ['Assessment', 'Lowest score', 'Highest score', 'Average score']
-        rows = [
-            ['All combined', *self.get_min_max_avg()]
-        ]
-        for assessment in range(self.assessments):
-            rows.append([assessment, *self.get_min_max_avg(assessment)])
-
-        table_print(headers, rows)
 
 class Student:
     def __init__(self, firstname, lastname, id, scores):
@@ -333,19 +251,6 @@ class InteractiveControl:
         else:
             print('Sorry we couldn\'t find that. Please recheck and try again.')
             sleep(2)
-    
-    def list(self):
-        print('--[List Settings]--')
-        while True:
-            yesno = input('Full info? [Y/n] ').lower()
-            if yesno in 'yn':
-                yesno = yesno == 'y'  #Convert to boolean
-                break
-        while True:
-            sortmode = input('Sorted by? [firstname/lastname/score] ')
-            if sortmode in ('firstname', 'lastname', 'score'):
-                break
-        self.module.display_student_table(sortmode, yesno)
 
 def main_menu():
     print('--[Main Menu]--')
@@ -502,23 +407,30 @@ def main_function(ic):
     while True:
         system('cls')
         main_menu()
-        select = int(input('Enter your Choice: '))
-        clear()
-        if select < 1 or select > 4:
-            print('Invalid Choice.')
+        try:
+            select = int(input('Enter your Choice: '))
+            clear()
+            if select < 1 or select > 4:
+                print('Invalid Choice.')
+                sleep(2)
+                clear()
+                continue
+            elif select == 1:
+                action_1(ic)
+            elif select == 2:
+                action_2(ic)
+            elif select == 3:
+                clear()
+                student_function(ic)
+                clear()
+            elif select == 4:
+                print('See you soon :)')
+                exit(0)
+        except ValueError:
+            print('Its not a number')
             sleep(2)
             clear()
-        elif select == 1:
-            action_1(ic)
-        elif select == 2:
-            action_2(ic)
-        elif select == 3:
-            clear()
-            student_function(ic)
-            clear()
-        elif select == 4:
-            print('See you soon :)')
-            exit(0)
+            continue
 
 def student_function(ic):
     while True:
@@ -530,41 +442,49 @@ def student_function(ic):
         print('  4. List Average score regarding module')
         print('  5. Display minimum and maximum scores for each module')
         print('  6. Go Back to main menu')
-        select = int(input('Enter your Choice: '))
-        clear()
-        if select < 1 or select > 6:
-            print('Invalid Choice.')
-            exit(0)
-        elif select == 1:
-            ic.add_student()
+        try:
+            select = int(input('Enter your Choice: '))
+            clear()
+            if select < 1 or select > 6:
+                print('Invalid Choice.')
+                sleep(2)
+                clear()
+                continue
+            elif select == 1:
+                ic.add_student()
+                sleep(2)
+                clear()
+            elif select == 2:
+                sort = None
+                while True:
+                    sort = input('How you wanna sort[firstname, lastname, scores]: ')
+                    if sort == 'firstname' or sort == 'lastname' or sort == 'scores':
+                        break
+                    else:
+                        continue
+                display_all_students(sort)
+                input('Press return to continue> ')
+                clear()
+            elif select == 3:
+                id = input('Please specify Module ID:- ')
+                assessment = int(input('Please specify Assessment Number:- '))
+                display_min_max_students(id,assessment)
+                clear()
+            elif select == 4:
+                id = input('Please specify Module ID:- ')
+                display_average_score(id)
+                clear()
+            elif select == 5:
+                id = input('Please specify Module ID:- ')
+                display_min_max_module(id)
+                clear()
+            elif select == 6:
+                break
+        except ValueError:
+            print('Its not a number')
             sleep(2)
             clear()
-        elif select == 2:
-            sort = None
-            while True:
-                sort = input('How you wanna sort[firstname , lastname , scores]: ')
-                if sort == 'firstname' or sort == 'lastname' or sort == 'scores':
-                    break
-                else:
-                    continue
-            display_all_students(sort)
-            input('Press return to continue> ')
-            clear()
-        elif select == 3:
-            id = input('Please specify Module ID:- ')
-            assessment = int(input('Please specify Assessment Number:- '))
-            display_min_max_students(id,assessment)
-            clear()
-        elif select == 4:
-            id = input('Please specify Module ID:- ')
-            display_average_score(id)
-            clear()
-        elif select == 5:
-            id = input('Please specify Module ID:- ')
-            display_min_max_module(id)
-            clear()
-        elif select == 6:
-            break
+            continue
 def clear():
     system('cls')
 
