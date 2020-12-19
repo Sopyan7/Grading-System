@@ -16,18 +16,22 @@ def sort_algorithm(list, key=lambda obj: obj):
 # Minimum
 def min(list):
     m = float('inf')
-    for x in list:
-        if x < m:
-            m = x
-    return m
+    pos = 0
+    for x in range(0,len(list)):
+        if list[x] < m:
+            m = list[x]
+            pos = x
+    return (m,pos)
 
 #Maximum
 def max(list):
     m = -float('inf')
-    for x in list:
-        if x > m:
-            m = x
-    return m
+    pos=0
+    for x in range(0,len(list)):
+        if list[x] > m:
+            m = list[x]
+            pos = x
+    return (m,pos)
 
 #Sum
 def sum(list):
@@ -35,6 +39,14 @@ def sum(list):
     for x in list:
         s += x
     return s
+
+def average(list):
+    av = 0
+    s = 0
+    for x in list:
+        s += x
+    av = s/len(list)
+    return av
 
 #Enumerate List
 def enumerate(list):
@@ -105,6 +117,12 @@ def get_module_by_id(id:str):
             if module["id"] == id:
                 return module
         return False
+
+def get_all_modules():
+    with open('module.json','r') as file:
+        json_data = json.load(file)
+        return json_data['modules']
+    return False
 
 
 class Module:
@@ -258,7 +276,7 @@ class InteractiveControl:
                 print('Weight must be between 0 and 1.')
             weights.append(weight)
         return weights
-
+        
 	#Creating Module
     def create_module(self):
         print('--[Module creation]--')
@@ -337,10 +355,61 @@ def main_menu():
     print('3. Move to Student Menu')
     print('4. Exit')
 
+def sort_object(student,key):
+    changed = True
+    if key == 'lastname':
+        while changed:
+            last=None
+            changed = False
+            for lno, l in enumerate(student):
+                if last is not None and l[key] > last:
+                    student[lno - 1]['firstname'], student[lno]['firstname'] = student[lno]['firstname'], student[lno - 1]['firstname']
+                    student[lno - 1]['lastname'], student[lno]['lastname'] = student[lno]['lastname'], student[lno - 1]['lastname']
+                    student[lno - 1]['id'], student[lno]['id'] = student[lno]['id'], student[lno - 1]['id']
+                    student[lno - 1]['scores'], student[lno]['scores'] = student[lno]['scores'], student[lno - 1]['scores']
+                    student[lno - 1]['average'], student[lno]['average'] = student[lno]['average'], student[lno - 1]['average']
+                    changed = True
+                else:
+                    last = student[0][key]
+        return student
+    elif key == 'firstname':
+        while changed:
+            last=None
+            changed = False
+            for lno, l in enumerate(student):
+                if last is not None and l[key] < last:
+                    student[lno - 1]['firstname'], student[lno]['firstname'] = student[lno]['firstname'], student[lno - 1]['firstname']
+                    student[lno - 1]['lastname'], student[lno]['lastname'] = student[lno]['lastname'], student[lno - 1]['lastname']
+                    student[lno - 1]['id'], student[lno]['id'] = student[lno]['id'], student[lno - 1]['id']
+                    student[lno - 1]['scores'], student[lno]['scores'] = student[lno]['scores'], student[lno - 1]['scores']
+                    student[lno - 1]['average'], student[lno]['average'] = student[lno]['average'], student[lno - 1]['average']
+                    changed = True
+                else:
+                    last = student[0][key]
+        return student
+    elif key == 'scores':
+        while changed:
+            last=None
+            changed = False
+            total = 0
+            for lno, l in enumerate(student):
+                total = sum(l[key])
+                if last is not None and total > last:
+                    student[lno - 1]['firstname'], student[lno]['firstname'] = student[lno]['firstname'], student[lno - 1]['firstname']
+                    student[lno - 1]['lastname'], student[lno]['lastname'] = student[lno]['lastname'], student[lno - 1]['lastname']
+                    student[lno - 1]['id'], student[lno]['id'] = student[lno]['id'], student[lno - 1]['id']
+                    student[lno - 1]['scores'], student[lno]['scores'] = student[lno]['scores'], student[lno - 1]['scores']
+                    student[lno - 1]['average'], student[lno]['average'] = student[lno]['average'], student[lno - 1]['average']
+                    changed = True
+                else:
+                    last = sum(student[0][key])
+        return student
+    else:
+        return False
+
 def action_1(ic):
     ic.create_module()
     sleep(2)
-
 def action_2(ic):
     modules = None
     while True:
@@ -355,6 +424,79 @@ def action_2(ic):
         ic.create_module()
     sleep(2)
     system('cls')
+
+def display_all_students(sort='scores'):
+    headers = ['Student ID','Firstname', 'Lastname', 'Total score', 'Average score', 'Grade', 'Degree']
+    rows = []
+    modules = get_all_modules()
+    for module_data in modules:
+        module = Module(module_data["id"],module_data["name"],module_data["code"],module_data["assessments"],module_data["weights"],module_data["students"])
+        student_sorted = sort_object(module_data['students'],sort)
+
+        print(f'\n\nModule {module.id}\n--------------\n\n')
+        for student_data in student_sorted:
+            student = Student(student_data["firstname"],student_data["lastname"],student_data["id"],student_data["scores"])
+            row = [student.id , student.firstname, student.lastname, 0 , 0]
+            for i in range(module.assessments):
+                row[3] += student.scores[i]
+                row[4] += student.scores[i] * module.weights[i]
+            row.extend(performance(row[3]))
+            rows.append(row)
+        table_print(headers, rows)
+        rows = []
+
+def display_min_max_students(id:str,assessment:int):
+    headers = ['Assessment','Lowest Score','Highest Score','High Scorer', 'Low Scorer', 'Average Score']
+    rows = []
+    module_data = get_module_by_id(id)
+    module = Module(module_data["id"],module_data["name"],module_data["code"],module_data["assessments"],module_data["weights"],module_data["students"])
+    if assessment <= module.assessments:
+        scores = []
+        for i in range(0,len(module.students)):
+            scores.append(module.students[i]['scores'][assessment-1])
+        min_num,min_pos = min(scores)
+        max_num,max_pos = max(scores)
+        high_score = f"{module.students[max_pos]['firstname']} {module.students[max_pos]['lastname']} - {module.students[max_pos]['id']}"
+        low_score = f"{module.students[min_pos]['firstname']} {module.students[min_pos]['lastname']} - {module.students[min_pos]['id']}"
+        row = [assessment , min_num , max_num , high_score, low_score, average(scores)]
+        rows.append(row)
+        table_print(headers, rows)
+        input('Press Return to continue> ')
+    else:
+        print('Couldn\'t Find any assessment. Please recheck and try again\n')
+        input('Press Return to continue> ')
+
+def display_average_score(id:str):
+    headers = ['Assessment','Average Score']
+    rows = []
+    module_data = get_module_by_id(id)
+    module = Module(module_data["id"],module_data["name"],module_data["code"],module_data["assessments"],module_data["weights"],module_data["students"])
+    scores = []
+    for x in range(0,module.assessments):
+        for i in range(0,len(module.students)):
+            scores.append(module.students[i]['scores'][x])
+        row = [ x+1, average(scores)]
+        rows.append(row)
+    table_print(headers, rows)
+    input('Press Return to continue> ')
+
+def display_min_max_module(id:str):
+    headers = ['Assessment','Lowest Score', 'Highest Score', 'Low Scorer', 'High Scorer']
+    rows = []
+    module_data = get_module_by_id(id)
+    module = Module(module_data["id"],module_data["name"],module_data["code"],module_data["assessments"],module_data["weights"],module_data["students"])
+    scores = []
+    for x in range(0,module.assessments):
+        for i in range(0,len(module.students)):
+            scores.append(module.students[i]['scores'][x])
+        min_num,min_pos = min(scores)
+        max_num,max_pos = max(scores)
+        high_score = f"{module.students[max_pos]['firstname']} {module.students[max_pos]['lastname']} - {module.students[max_pos]['id']}"
+        low_score = f"{module.students[min_pos]['firstname']} {module.students[min_pos]['lastname']} - {module.students[min_pos]['id']}"
+        row = [ x+1, min_num, max_num, low_score, high_score]
+        rows.append(row)
+    table_print(headers, rows)
+    input('Press Return to continue> ')
 
 def main_function(ic):
     while True:
@@ -383,12 +525,14 @@ def student_function(ic):
         print('--[Student Menu]--')
         print('Actions:')
         print('  1. Add student')
-        print('  2. List students')
-        print('  3. List lowest/highest score and weights of assessments')
-        print('  4. Go Back to main menu')
+        print('  2. List all students data')
+        print('  3. List all students regarding module and assessment')
+        print('  4. List Average score regarding module')
+        print('  5. Display minimum and maximum scores for each module')
+        print('  6. Go Back to main menu')
         select = int(input('Enter your Choice: '))
         clear()
-        if select < 1 or select > 4:
+        if select < 1 or select > 6:
             print('Invalid Choice.')
             exit(0)
         elif select == 1:
@@ -396,17 +540,31 @@ def student_function(ic):
             sleep(2)
             clear()
         elif select == 2:
-            ic.list()
+            sort = None
+            while True:
+                sort = input('How you wanna sort[firstname , lastname , scores]: ')
+                if sort == 'firstname' or sort == 'lastname' or sort == 'scores':
+                    break
+                else:
+                    continue
+            display_all_students(sort)
             input('Press return to continue> ')
             clear()
         elif select == 3:
-            ic.module.display_assessments()
-            input('Press return to continue> ')
+            id = input('Please specify Module ID:- ')
+            assessment = int(input('Please specify Assessment Number:- '))
+            display_min_max_students(id,assessment)
             clear()
         elif select == 4:
+            id = input('Please specify Module ID:- ')
+            display_average_score(id)
+            clear()
+        elif select == 5:
+            id = input('Please specify Module ID:- ')
+            display_min_max_module(id)
+            clear()
+        elif select == 6:
             break
-
-
 def clear():
     system('cls')
 
