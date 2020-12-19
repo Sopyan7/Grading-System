@@ -385,24 +385,26 @@ def display_average_score(id:str):
     table_print(headers, rows)
     input('Press Return to continue> ')
 
-def display_min_max_module(id:str):
+def display_min_max_module():
     headers = ['Assessment','Lowest Score', 'Highest Score', 'Low Scorer', 'High Scorer']
     rows = []
-    module_data = get_module_by_id(id)
-    module = Module(module_data["id"],module_data["name"],module_data["code"],module_data["assessments"],module_data["weights"],module_data["students"])
-    scores = []
-    for x in range(0,module.assessments):
+    modules_data = get_all_modules()
+    for module_data in modules_data:
+        rows = []
+        print('\n\nModule ' + module_data["id"] + '\n-----------------------\n\n')
+        module = Module(module_data["id"],module_data["name"],module_data["code"],module_data["assessments"],module_data["weights"],module_data["students"])
         scores = []
-        for i in range(0,len(module.students)):
-            scores.append(module.students[i]['scores'][x])
-        print(scores)
-        min_num,min_pos = min(scores)
-        max_num,max_pos = max(scores)
-        high_score = f"{module.students[max_pos]['firstname']} {module.students[max_pos]['lastname']} - {module.students[max_pos]['id']}"
-        low_score = f"{module.students[min_pos]['firstname']} {module.students[min_pos]['lastname']} - {module.students[min_pos]['id']}"
-        row = [ x+1, min_num, max_num, low_score, high_score]
-        rows.append(row)
-    table_print(headers, rows)
+        for x in range(0,module.assessments):
+            scores = []
+            for i in range(0,len(module.students)):
+                scores.append(module.students[i]['scores'][x])
+            min_num,min_pos = min(scores)
+            max_num,max_pos = max(scores)
+            high_score = f"{module.students[max_pos]['firstname']} {module.students[max_pos]['lastname']} - {module.students[max_pos]['id']}"
+            low_score = f"{module.students[min_pos]['firstname']} {module.students[min_pos]['lastname']} - {module.students[min_pos]['id']}"
+            row = [ x+1, min_num, max_num, low_score, high_score]
+            rows.append(row)
+        table_print(headers, rows)
     input('Press Return to continue> ')
 
 def main_function(ic):
@@ -459,7 +461,7 @@ def student_function(ic):
             elif select == 2:
                 sort = None
                 while True:
-                    sort = input('How you wanna sort[firstname, lastname, scores]: ')
+                    sort = input('How you wanna sort[firstname , lastname , scores]: ')
                     if sort == 'firstname' or sort == 'lastname' or sort == 'scores':
                         break
                     else:
@@ -477,8 +479,7 @@ def student_function(ic):
                 display_average_score(id)
                 clear()
             elif select == 5:
-                id = input('Please specify Module ID:- ')
-                display_min_max_module(id)
+                display_min_max_module()
                 clear()
             elif select == 6:
                 break
