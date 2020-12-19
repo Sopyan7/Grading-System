@@ -392,8 +392,10 @@ def display_min_max_module(id:str):
     module = Module(module_data["id"],module_data["name"],module_data["code"],module_data["assessments"],module_data["weights"],module_data["students"])
     scores = []
     for x in range(0,module.assessments):
+        scores = []
         for i in range(0,len(module.students)):
             scores.append(module.students[i]['scores'][x])
+        print(scores)
         min_num,min_pos = min(scores)
         max_num,max_pos = max(scores)
         high_score = f"{module.students[max_pos]['firstname']} {module.students[max_pos]['lastname']} - {module.students[max_pos]['id']}"
