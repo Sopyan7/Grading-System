@@ -29,6 +29,7 @@ def sum(list):
         s += x
     return s
 
+#Average
 def average(list):
     av = 0
     s = 0
@@ -222,41 +223,40 @@ class InteractiveControl:
         print('√ Created the module ' + name + ' With ID ' + id)
 
     def add_student(self):
-        module_id = input('Please pass the module ID:- ')
-        module = get_module_by_id(module_id)
-        if module:
-            self.module = Module(module["id"],module["name"],module["code"],module["assessments"],module["weights"],module["students"])
-            clear()
-            print('--[Add student]--')
-            firstname = input('Firstname of the student: ')
-            lastname = input('Lastname of the student: ')
-            studentid = self.typed_input('Student ID: ', int, 'whole number')
-            scores = []
-            while len(scores) < self.module.assessments:
-                while True:
-                    score = self.typed_input(
-                        'Points from assessment ' + str(len(scores) + 1) + ': ',
-                        int,
-                        'whole number'
-                    )
-                    if 100 >= score >= 0:
-                        break
-                    print('Score must be between 0 and 100.')
-                scores.append(score)
-
-            student = Student(firstname, lastname, studentid, scores)
-            self.module.students.append(student)
-            save_student(student.__dict__,module_id)
-            print('√ Added student ' + firstname + ' ' + lastname)
+        modules = get_all_modules()
+        print('--[Add student]--')
+        firstname = input('Firstname of the student: ')
+        lastname = input('Lastname of the student: ')
+        studentid = self.typed_input('Student ID: ', int, 'whole number')
+        if modules:
+            for module in modules:
+                self.module = Module(module["id"],module["name"],module["code"],module["assessments"],module["weights"],module["students"])
+                clear()
+                scores = []
+                while len(scores) < self.module.assessments:
+                    while True:
+                        score = self.typed_input(
+                            f'Module of {self.module.id} and Points from assessment ' + str(len(scores) + 1) + ': ',
+                            int,
+                            'whole number'
+                        )
+                        if 100 >= score >= 0:
+                            break
+                        print('Score must be between 0 and 100.')
+                    scores.append(score)
+                student = Student(firstname, lastname, studentid, scores)
+                self.module.students.append(student)
+                save_student(student.__dict__,self.module.id)
+            print('√ Added student to all modules ' + firstname + ' ' + lastname)
         else:
-            print('Sorry we couldn\'t find that. Please recheck and try again.')
+            print('Sorry we couldn\'t any data. Please recheck and try again.')
             sleep(2)
 
 def main_menu():
     print('--[Main Menu]--')
     print('Actions:')
     print('1. Add a new Module')
-    print('2. Add new Modules ( More than 1)')
+    print('2. Add new Modules (Minimum 3)')
     print('3. Move to Student Menu')
     print('4. Exit')
 
@@ -320,6 +320,9 @@ def action_2(ic):
     while True:
         try:
             modules = int(input('How many modules you want to create - '))
+            if modules < 3:
+                print('Value should be Minimum 3')
+                continue
             break
         except ValueError:
             print('Value should be integer')
@@ -330,27 +333,45 @@ def action_2(ic):
     sleep(2)
     system('cls')
 
-def display_all_students(sort='scores'):
-    headers = ['Student ID','Firstname', 'Lastname', 'Total score', 'Average score', 'Grade', 'Degree']
-    rows = []
-    modules = get_all_modules()
-    for module_data in modules:
-        module = Module(module_data["id"],module_data["name"],module_data["code"],module_data["assessments"],module_data["weights"],module_data["students"])
-        student_sorted = sort_object(module_data['students'],sort)
-
-        print(f'\n\nModule {module.id}\n--------------\n\n')
-        for student_data in student_sorted:
-            student = Student(student_data["firstname"],student_data["lastname"],student_data["id"],student_data["scores"])
-            row = [student.id , student.firstname, student.lastname, 0 , 0]
-            for i in range(module.assessments):
-                row[3] += student.scores[i]
-                row[4] += student.scores[i] * module.weights[i]
-            row.extend(performance(row[3]))
-            rows.append(row)
-        table_print(headers, rows)
+def display_all_students(sort=None):
+    if sort is None:
+        headers = ['Student ID','Firstname', 'Lastname', 'Total score', 'Average score', 'Grade', 'Degree']
         rows = []
+        modules = get_all_modules()
+        for module_data in modules:
+            module = Module(module_data["id"],module_data["name"],module_data["code"],module_data["assessments"],module_data["weights"],module_data["students"])
+            print(f'\n\nModule {module.id}\n--------------\n\n')
+            for student_data in module.students:
+                student = Student(student_data["firstname"],student_data["lastname"],student_data["id"],student_data["scores"])
+                row = [student.id , student.firstname, student.lastname, 0 , 0]
+                for i in range(module.assessments):
+                    row[3] += student.scores[i]
+                    row[4] += student.scores[i] * module.weights[i]
+                row.extend(performance(row[3]))
+                rows.append(row)
+            table_print(headers, rows)
+            rows = []
+    else:
+        headers = ['Student ID','Firstname', 'Lastname', 'Total score', 'Average score', 'Grade', 'Degree']
+        rows = []
+        modules = get_all_modules()
+        for module_data in modules:
+            module = Module(module_data["id"],module_data["name"],module_data["code"],module_data["assessments"],module_data["weights"],module_data["students"])
+            student_sorted = sort_object(module_data['students'],sort)
 
-def display_min_max_students(id:str,assessment:int):
+            print(f'\n\nModule {module.id}\n--------------\n\n')
+            for student_data in student_sorted:
+                student = Student(student_data["firstname"],student_data["lastname"],student_data["id"],student_data["scores"])
+                row = [student.id , student.firstname, student.lastname, 0 , 0]
+                for i in range(module.assessments):
+                    row[3] += student.scores[i]
+                    row[4] += student.scores[i] * module.weights[i]
+                row.extend(performance(row[3]))
+                rows.append(row)
+            table_print(headers, rows)
+            rows = []
+
+def display_min_max_students(id:str,assessment:int,full_info=False):
     headers = ['Assessment','Lowest Score','Highest Score','High Scorer', 'Low Scorer', 'Average Score']
     rows = []
     module_data = get_module_by_id(id)
@@ -366,6 +387,34 @@ def display_min_max_students(id:str,assessment:int):
         row = [assessment , min_num , max_num , high_score, low_score, average(scores)]
         rows.append(row)
         table_print(headers, rows)
+        if full_info == True:
+            headers_1 = ['Student ID','Firstname','Lastname','Total Score','Average Secore','Grade','Degree']
+            rows_1 = []
+
+            # High Scorer Result
+            student = Student(module.students[max_pos]["firstname"],module.students[max_pos]["lastname"],module.students[max_pos]["id"],module.students[max_pos]["scores"])
+            row_1 = [student.id , student.firstname, student.lastname, 0 , 0]
+            for i in range(module.assessments):
+                row_1[3] += student.scores[i]
+                row_1[4] += student.scores[i] * module.weights[i]
+            row_1.extend(performance(row_1[3]))
+            rows_1.append(row_1)
+            print('\nHigh Scorer Info\n------------------\n\n')
+            table_print(headers_1, rows_1)
+            print('\nLow Scorer Info\n------------------\n\n')
+            rows_1 = []
+            row_1 = []
+
+            # Low Scorer Result
+
+            student = Student(module.students[min_pos]["firstname"],module.students[min_pos]["lastname"],module.students[min_pos]["id"],module.students[min_pos]["scores"])
+            row_1 = [student.id , student.firstname, student.lastname, 0 , 0]
+            for i in range(module.assessments):
+                row_1[3] += student.scores[i]
+                row_1[4] += student.scores[i] * module.weights[i]
+            row_1.extend(performance(row_1[3]))
+            rows_1.append(row_1)
+            table_print(headers_1, rows_1)
         input('Press Return to continue> ')
     else:
         print('Couldn\'t Find any assessment. Please recheck and try again\n')
@@ -385,9 +434,14 @@ def display_average_score(id:str):
     table_print(headers, rows)
     input('Press Return to continue> ')
 
-def display_min_max_module():
+def display_min_max_module(full_info=False):
     headers = ['Assessment','Lowest Score', 'Highest Score', 'Low Scorer', 'High Scorer']
     rows = []
+    headers_1 = ['Student ID','Firstname','Lastname','Total Score','Average Score','Grade','Degree']
+    row_1 = []
+    row_2 = []
+    data_row_1 = []
+    data_row_2 = []
     modules_data = get_all_modules()
     for module_data in modules_data:
         rows = []
@@ -404,7 +458,40 @@ def display_min_max_module():
             low_score = f"{module.students[min_pos]['firstname']} {module.students[min_pos]['lastname']} - {module.students[min_pos]['id']}"
             row = [ x+1, min_num, max_num, low_score, high_score]
             rows.append(row)
+            if full_info == True:
+
+                # High Scorer Result
+                student = Student(module.students[max_pos]["firstname"],module.students[max_pos]["lastname"],module.students[max_pos]["id"],module.students[max_pos]["scores"])
+                data_row_1 = [student.id , student.firstname, student.lastname, 0 , 0]
+                for i in range(module.assessments):
+                    data_row_1[3] += student.scores[i]
+                    data_row_1[4] += student.scores[i] * module.weights[i]
+                data_row_1.extend(performance(data_row_1[3]))
+                row_1.append(data_row_1)
+
+                # Low Scorer Result
+                student = Student(module.students[min_pos]["firstname"],module.students[min_pos]["lastname"],module.students[min_pos]["id"],module.students[min_pos]["scores"])
+                data_row_2 = [student.id , student.firstname, student.lastname, 0 , 0]
+                for i in range(module.assessments):
+                    data_row_2[3] += student.scores[i]
+                    data_row_2[4] += student.scores[i] * module.weights[i]
+                data_row_2.extend(performance(data_row_2[3]))
+                row_2.append(data_row_2)
         table_print(headers, rows)
+        if full_info == True:
+            print('\nHigh Scorer Info\n------------------\n\n')
+            table_print(headers_1, row_1)
+            print('\nLow Scorer Info\n------------------\n\n')
+            table_print(headers_1, row_2)
+            row_1 = []
+            row_2 = []
+            data_row_1 = []
+            data_row_2 = []
+    # if full_info == True:
+    #     print('\nHigh Scorer Info\n------------------\n\n')
+    #     table_print(headers_1, row_1)
+    #     print('\nLow Scorer Info\n------------------\n\n')
+    #     table_print(headers_1, row_2)
     input('Press Return to continue> ')
 
 def main_function(ic):
@@ -441,15 +528,16 @@ def student_function(ic):
         print('--[Student Menu]--')
         print('Actions:')
         print('  1. Add student')
-        print('  2. List all students data')
-        print('  3. List all students regarding module and assessment')
-        print('  4. List Average score regarding module')
-        print('  5. Display minimum and maximum scores for each module')
-        print('  6. Go Back to main menu')
+        print('  2. List all students data [Total Score, Average, Degree]')
+        print('  3. List and sort all student data')
+        print('  4. List Minimum/Maximum and Average for a specific module/assessment')
+        print('  5. List Average score for each module over all assessments')
+        print('  6. List Minimum/Maximum for a specific module/assessment')
+        print('  7. Go Back to main menu')
         try:
             select = int(input('Enter your Choice: '))
             clear()
-            if select < 1 or select > 6:
+            if select < 1 or select > 7:
                 print('Invalid Choice.')
                 sleep(2)
                 clear()
@@ -460,6 +548,11 @@ def student_function(ic):
                 clear()
             elif select == 2:
                 sort = None
+                display_all_students(sort)
+                input('Press return to continue> ')
+                clear()
+            elif select == 3:
+                sort = None
                 while True:
                     sort = input('How you wanna sort[firstname , lastname , scores]: ')
                     if sort == 'firstname' or sort == 'lastname' or sort == 'scores':
@@ -469,19 +562,27 @@ def student_function(ic):
                 display_all_students(sort)
                 input('Press return to continue> ')
                 clear()
-            elif select == 3:
+            elif select == 4:
                 id = input('Please specify Module ID:- ')
                 assessment = int(input('Please specify Assessment Number:- '))
-                display_min_max_students(id,assessment)
+                full_info = input('do you want to display full info [y]/[n]:- ')
+                if full_info == 'y' or full_info == 'Y':
+                    display_min_max_students(id,assessment,full_info=True)
+                else:
+                    display_min_max_students(id,assessment,full_info=False)
                 clear()
-            elif select == 4:
+            elif select == 5:
                 id = input('Please specify Module ID:- ')
                 display_average_score(id)
                 clear()
-            elif select == 5:
-                display_min_max_module()
-                clear()
             elif select == 6:
+                full_info = input('Do you want to display full info [y]/[n]:- ')
+                if full_info == 'y' or full_info == 'Y':
+                    display_min_max_module(True)
+                else:
+                    display_min_max_module(False)
+                clear()
+            elif select == 7:
                 break
         except ValueError:
             print('Its not a number')
